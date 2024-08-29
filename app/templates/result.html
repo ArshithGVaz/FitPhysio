@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motion Match - Results</title>
+    <link rel="stylesheet" href="../static/styles.css">
+    <link rel="icon" type="image/x-icon" href="../static/ribbon-solid.ico">
+    <script src="https://kit.fontawesome.com/8751abb40d.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@500&display=swap" rel="stylesheet">
+    <style>
+        .result-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        img, video {
+            display: block;
+            margin: 0 auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="brand"><a href='/home'><i class="fa-solid fa-person-running"></i></a>Motion Match</div>
+    </nav>
+    <div class="result-container" style="background-color: aqua;">
+        <h1 id="accuracy-text"></h1>
+        <img id="accuracy-graph" alt="Accuracy Graph"/>
+        <video id="response-video" controls autoplay></video>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var accuracy = localStorage.getItem('average_accuracy');
+            var videoSrc = localStorage.getItem('processed_video');
+            var graphSrc = localStorage.getItem('accuracy_graph');
+
+            document.getElementById('accuracy-text').textContent = 'Average Accuracy: ' + accuracy + '%';
+            document.getElementById('response-video').src = videoSrc;
+            document.getElementById('accuracy-graph').src = graphSrc;
+        });
+    </script>
+</body>
+</html>

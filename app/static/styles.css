@@ -1,0 +1,86 @@
+body {
+    font-family: 'Raleway', sans-serif;
+    display: flex;
+    flex-direction: column; /* Ensure content stacks vertically */
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-image: url("background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.navbar {
+    background-color: rgba(0, 0, 0, 0.514); /* Darker background color */
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 40px 50px;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000; /* Ensure navbar stays on top */
+}
+
+.brand {
+    font-size: 45px; /* Adjust brand font size */
+    font-weight: bold;
+    color: #FF5733;
+}
+
+.upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 100px; /* Adjust margin top for the upload area */
+}
+
+.file-drop-area {
+    width: 800px;
+    height: 400px; /* Set minimum height for drop area */
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+    
+    /* Translucent and blurred background */
+    background-color: rgba(255, 255, 255, 0.202); /* Adjust opacity as needed */
+    backdrop-filter: blur(8px); /* Blur effect */
+}
+
+.file-drop-area.drag-over {
+    border-color: #4CAF50;
+}
+
+.prompt {
+    font-size: 26px;
+    color: #ffffff;
+}
+
+#file-input {
+    display: none;
+}
+
+#upload-button {
+    margin-top: 20px;
+    font-family: 'Raleway', sans-serif;
+    font-size: 20px;
+    padding: 15px 30px; /* Increase padding for larger button */
+    border: none;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px; /* Add border radius to the button */
+}
+
+#upload-button:hover {
+    background-color: #45a049;
+}

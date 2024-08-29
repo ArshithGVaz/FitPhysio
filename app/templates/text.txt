@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Video</title>
+</head>
+<body>
+    <input type="file" id="fileInput">
+    <button onclick="uploadVideo()">Upload Video</button>
+
+    <script>
+        async function uploadVideo() {
+            const fileInput = document.getElementById('fileInput');
+            const videoFile = fileInput.files[0];
+
+            if (!videoFile) {
+                console.error('No file selected.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", videoFile);
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/process-video/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+
+                const responseData = await response.json();
+                console.log(responseData);
+            } catch (error) {
+                console.error('There has been a problem with your fetch operation:', error);
+            }
+        }
+    </script>
+</body>
+</html>
