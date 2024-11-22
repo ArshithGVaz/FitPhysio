@@ -18,7 +18,7 @@ previous_keypoints = [None, None]
 
 def run_tracker_in_thread(filename, index):
     model = YOLO("yolo11m-pose.pt")
-    results = model(filename, stream=True, conf=0.3, imgsz=160, max_det=1, vid_stride=5, save=True)
+    results = model(filename, stream=True, conf=0.3, imgsz=160, max_det=1, vid_stride=5, show=True)
     for r in results:
         if r.keypoints:
             # Extract and print xy coordinates for keypoints 5, 6, 7, 8, 9, and 10
