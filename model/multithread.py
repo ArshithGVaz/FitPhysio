@@ -7,7 +7,7 @@ import torch
 from ultralytics import YOLO
 
 # Define video sources
-SOURCES = ["jump2.mp4", "v2.mp4"]  # local video, 0 for webcam
+SOURCES = ["jump2.mp4", "0"]  # local video, 0 for webcam
 
 # Shared data structure for keypoint data
 keypoint_data = [None, None]

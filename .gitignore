@@ -1,3 +1,5 @@
 model/v2.mp4
 model/jump2.mp4
 model/yolo11m-pose.pt
+model/runs/
+model/v3.mp4
