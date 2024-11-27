@@ -1,16 +1,52 @@
-# from threading import Thread
-
-import math
-import pickle
+import time
+from threading import Thread
 
 import cv2
 import imutils
+import matplotlib.pyplot as plt
+import numpy as np
 from ultralytics import YOLO
 
-file = open("scale.pkl", "rb")
-delta = pickle.load(file)
+similarity_values = []
 
-diff_list = []
+
+def normalize_keypoints(keypoints, anchor_idx1, anchor_idx2):
+    # Extract reference keypoints
+    x1, y1 = keypoints[anchor_idx1]
+    x2, y2 = keypoints[anchor_idx2]
+
+    # Calculate the scaling factor (distance between anchor keypoints)
+    scale = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+    # Calculate the anchor point (e.g., midpoint)
+    anchor_x, anchor_y = (x1 + x2) / 2, (y1 + y2) / 2
+
+    # Normalize all keypoints
+    normalized_keypoints = []
+    for x, y in keypoints:
+        norm_x = (x - anchor_x) / scale
+        norm_y = (y - anchor_y) / scale
+        normalized_keypoints.append((norm_x, norm_y))
+
+    return np.array(normalized_keypoints)
+
+
+def compute_cosine_similarity(pose1, pose2):
+    # Flatten the keypoints into a single vector
+    pose1_vector = pose1.flatten()
+    pose2_vector = pose2.flatten()
+
+    # Compute dot product and magnitudes
+    dot_product = np.dot(pose1_vector, pose2_vector)
+    magnitude1 = np.linalg.norm(pose1_vector)
+    magnitude2 = np.linalg.norm(pose2_vector)
+
+    # Avoid division by zero
+    if magnitude1 == 0 or magnitude2 == 0:
+        return 0  # Treat zero-magnitude vectors as orthogonal
+
+    # Compute cosine similarity
+    return dot_product / (magnitude1 * magnitude2)
 
 
 def detect_pose(path1, path2):
@@ -37,20 +73,12 @@ def detect_pose(path1, path2):
                         points2 = r2.keypoints.xy.numpy()
 
                         # Make point 5 as 0 for both arrays
-                        points1[0][:, 0] -= points1[0][5, 0]
-                        points1[0][:, 1] -= points1[0][5, 1]
+                        points1 = normalize_keypoints(points1[0], anchor_idx1=5, anchor_idx2=6)
+                        points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
 
-                        points2[0][:, 0] -= points2[0][5, 0]
-                        points2[0][:, 1] -= points2[0][5, 1]
+                        similarity = compute_cosine_similarity(points1, points2)
 
-                        points2[0] += delta
-
-                        diff = 0
-                        for i in range(0, 17):
-                            # print(math.dist(points1[0][i], points2[0][i]))
-                            diff += math.dist(points1[0][i], points2[0][i])
-
-                        diff_list.append(diff)
+                        similarity_values.append(similarity)
 
             # Display the annotated frame
             annotated_frame1 = imutils.resize(frame1, width=960)
@@ -72,6 +100,51 @@ def detect_pose(path1, path2):
     cv2.destroyAllWindows()
 
 
-detect_pose("v3.mp4", "jump2.mp4")
+# Start the detect_pose function in a separate thread
+thread = Thread(
+    target=detect_pose,
+    args=("v3.mp4", "pushup.mp4"),
+    daemon=True,  # Ensures thread exits when the main program ends
+).start()
 
-print(diff_list)
+# Set up the plot on the main thread
+plt.ion()  # Enable interactive mode
+fig, ax = plt.subplots()
+x_data, y_data = [], []  # Empty lists for x and y data
+(line,) = ax.plot(x_data, y_data, "-o")
+ax.set_xlabel("Time (s)")
+ax.set_ylabel("Similarity")
+ax.set_title("Real-Time Similarity Plot")
+ax.set_ylim(0, 1)  # Fix y-axis range between 0 and 1
+
+start_time = time.time()
+
+# Main loop to update the plot
+try:
+    while True:
+        # Get elapsed time
+        elapsed_time = time.time() - start_time
+
+        # Check if there are new similarity values to plot
+        while similarity_values:
+            y_data.append(similarity_values.pop(0))  # Append similarity value
+            x_data.append(elapsed_time)  # Append elapsed time for x-axis
+
+        # Update the plot
+        line.set_xdata(x_data)
+        line.set_ydata(y_data)
+        ax.relim()  # Recalculate limits
+        ax.autoscale_view()  # Adjust the view automatically
+
+        # Redraw the canvas
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
+        time.sleep(0.1)  # Adjust for smoother or slower updates
+
+except KeyboardInterrupt:
+    print("Plotting stopped by user.")
+
+# Clean up and close windows
+plt.ioff()
+plt.show()
