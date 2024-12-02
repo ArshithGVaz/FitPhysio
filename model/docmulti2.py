@@ -1,4 +1,3 @@
-import pickle
 import time
 from threading import Thread
 
@@ -9,7 +8,6 @@ import numpy as np
 from ultralytics import YOLO
 
 similarity_values = []
-list1 = []
 
 
 def normalize_keypoints(keypoints, anchor_idx1, anchor_idx2):
@@ -54,48 +52,40 @@ def compute_cosine_similarity(pose1, pose2):
 def detect_pose(path1, path2):
     model = YOLO("yolo11m-pose.pt")
     cap1 = cv2.VideoCapture(path1)
-    # cap2 = cv2.VideoCapture(path2)
+    cap2 = cv2.VideoCapture(path2)
 
-    while cap1.isOpened():
+    while cap1.isOpened() and cap2.isOpened():
         success1, frame1 = cap1.read()
-        # success2, frame2 = cap2.read()
+        success2, frame2 = cap2.read()
 
-        if success1:
+        if success1 and success2:
             fn = cap1.get(cv2.CAP_PROP_POS_FRAMES)
             if fn % 5 == 0:
                 results1 = model(frame1, conf=0.3, imgsz=160, max_det=1)
-                # results2 = model(frame2, conf=0.3, imgsz=160, max_det=1)
+                results2 = model(frame2, conf=0.3, imgsz=160, max_det=1)
 
                 frame1 = results1[0].plot()
-                # frame2 = results2[0].plot()
+                frame2 = results2[0].plot()
 
-                for r1 in results1:
-                    if r1.keypoints:
-                        points1 = r1.keypoints.xy.numpy()
-                        points1 = normalize_keypoints(points1[0], anchor_idx1=5, anchor_idx2=6)
-                        list1.append(points1)
-                """
                 for r1, r2 in zip(results1, results2):
                     if r2.keypoints:
                         points1 = r1.keypoints.xy.numpy()
                         points2 = r2.keypoints.xy.numpy()
 
-                        list1.append(points1[0])
-
                         # Make point 5 as 0 for both arrays
-                        points1 = normalize_keypoints(points1[0], anchor_idx1=5, anchor_idx2=6)
-                        points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
+                        points1 = normalize_keypoints(points1[0][5:11, :], anchor_idx1=0, anchor_idx2=1)
+                        points2 = normalize_keypoints(points2[0][5:11, :], anchor_idx1=0, anchor_idx2=1)
 
                         similarity = compute_cosine_similarity(points1, points2)
 
                         similarity_values.append(similarity)
-                """
+
             # Display the annotated frame
             annotated_frame1 = imutils.resize(frame1, width=960)
-            # annotated_frame2 = imutils.resize(frame2, width=960)
+            annotated_frame2 = imutils.resize(frame2, width=960)
 
             cv2.imshow("Trainer", annotated_frame1)
-            # cv2.imshow("User", annotated_frame2)
+            cv2.imshow("User", annotated_frame2)
 
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -106,16 +96,7 @@ def detect_pose(path1, path2):
 
     # Release the video capture object and close the display window
     cap1.release()
-    # cap2.release()
-    with open("gfg2.txt", "w+") as f:
-        for items in list1:
-            f.write("%s\n" % items)
-        print("File written successfully")
-    f.close()
-
-    with open("data.pkl", "wb") as f:
-        pickle.dump(list1, f)
-
+    cap2.release()
     cv2.destroyAllWindows()
 
 
