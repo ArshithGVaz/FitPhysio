@@ -103,7 +103,7 @@ def detect_pose(path1, path2):
 # Start the detect_pose function in a separate thread
 thread = Thread(
     target=detect_pose,
-    args=("v3.mp4", "jump2.mp4"),
+    args=("./videos/jump1.mp4", "./videos/capture3.mp4"),
     # daemon=True,  # Ensures thread exits when the main program ends
 ).start()
 

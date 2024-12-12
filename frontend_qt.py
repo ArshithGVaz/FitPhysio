@@ -5,12 +5,10 @@ import cv2
 import imutils
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
 from ultralytics import YOLO
 
 from multi_precomp import compute_cosine_similarity, normalize_keypoints
-
-similarity_values = []
 
 with open("./export/data.pkl", "rb") as f:
     points1 = pickle.load(f)
@@ -27,8 +25,8 @@ class VideoThread(QThread):
         model = YOLO("yolo11n-pose.pt")
 
         # Capture video from two cameras (adjust indices if necessary)
-        cap_left = cv2.VideoCapture("./videos/pushup1.mp4")  # Left camera
-        cap_right = cv2.VideoCapture(0)  # Right camera
+        cap_left = cv2.VideoCapture("./videos/jump1.mp4")  # Left camera
+        cap_right = cv2.VideoCapture("./videos/capture3.mp4")  # Right camera
 
         while self.running:
             ret_left, frame_left = cap_left.read()
@@ -49,14 +47,16 @@ class VideoThread(QThread):
                             points2 = r1.keypoints.xy.numpy()
                             points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
                             similarity = compute_cosine_similarity(points1[i], points2)
+
                             if similarity < 0:
                                 similarity = 0
-                            print(similarity)
+
+                            # print(similarity)
                             self.similarity_update.emit(similarity)
-                            # similarity_values.append(similarity)
                             i += 1
 
                 rgb_frame_left = imutils.resize(rgb_frame_left, width=960)
+                rgb_frame_right = imutils.resize(rgb_frame_right, height=660)
 
                 qt_image_left = QImage(
                     rgb_frame_left.data,
@@ -235,5 +235,5 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec_())
