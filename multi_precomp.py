@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ultralytics import YOLO
 
+"""
 similarity_values = []
 
-with open("data.pkl", "rb") as f:
+with open("./export/data.pkl", "rb") as f:
     points1 = pickle.load(f)
+"""
 
 
 def normalize_keypoints(keypoints, anchor_idx1, anchor_idx2):
@@ -55,7 +57,7 @@ def compute_cosine_similarity(pose1, pose2):
 
 def detect_pose(path1, path2):
     i = 0
-    model = YOLO("yolo11m-pose.pt")
+    model = YOLO("yolo11n-pose.pt")
     cap1 = cv2.VideoCapture(path1)
     cap2 = cv2.VideoCapture(path2)
 
@@ -66,10 +68,7 @@ def detect_pose(path1, path2):
         if success1 and success2:
             fn = cap1.get(cv2.CAP_PROP_POS_FRAMES)
             if fn % 5 == 0:
-                # results1 = model(frame1, conf=0.3, imgsz=160, max_det=1)
-                results2 = model(frame2, conf=0.3, imgsz=160, max_det=1)
-
-                # frame1 = results1[0].plot()
+                results2 = model(frame2, conf=0.3, imgsz=320, max_det=1)
                 frame2 = results2[0].plot()
 
                 for r1 in results2:
@@ -80,22 +79,6 @@ def detect_pose(path1, path2):
                         similarity_values.append(similarity)
                         i += 1
 
-                """
-                for r1, r2 in zip(results1, results2):
-                    if r2.keypoints:
-                        points1 = r1.keypoints.xy.numpy()
-                        points2 = r2.keypoints.xy.numpy()
-
-                        list1.append(points1[0])
-
-                        # Make point 5 as 0 for both arrays
-                        points1 = normalize_keypoints(points1[0], anchor_idx1=5, anchor_idx2=6)
-                        points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
-
-                        similarity = compute_cosine_similarity(points1, points2)
-
-                        similarity_values.append(similarity)
-                """
             # Display the annotated frame
             annotated_frame1 = imutils.resize(frame1, width=960)
             annotated_frame2 = imutils.resize(frame2, width=960)
@@ -116,6 +99,7 @@ def detect_pose(path1, path2):
     cv2.destroyAllWindows()
 
 
+"""
 # Start the detect_pose function in a separate thread
 thread = Thread(
     target=detect_pose,
@@ -164,3 +148,4 @@ except KeyboardInterrupt:
 # Clean up and close windows
 plt.ioff()
 plt.show()
+"""

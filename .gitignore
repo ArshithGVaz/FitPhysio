@@ -1,5 +1,4 @@
-model/jump2.mp4
-model/yolo11m-pose.pt
-model/runs/
-model/v3.mp4
-model/pushup.mp4
+yolo11m-pose.pt
+yolo11n-pose.pt
+videos/
+__pycache__/
