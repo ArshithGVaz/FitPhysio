@@ -2,6 +2,7 @@ import pickle
 import sys
 
 import cv2
+import imutils
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
@@ -16,38 +17,72 @@ with open("./export/data.pkl", "rb") as f:
 
 
 class VideoThread(QThread):
-    frame_update = pyqtSignal(QImage)
+    frame_update_left = pyqtSignal(QImage)  # Signal for left box
+    frame_update_right = pyqtSignal(QImage)  # Signal for right box
+    similarity_update = pyqtSignal(float)  # Signal to update similarity value in the UI
 
     def run(self):
         self.running = True
         i = 0
         model = YOLO("yolo11n-pose.pt")
-        cap = cv2.VideoCapture(0)
+
+        # Capture video from two cameras (adjust indices if necessary)
+        cap_left = cv2.VideoCapture("./videos/pushup1.mp4")  # Left camera
+        cap_right = cv2.VideoCapture(0)  # Right camera
 
         while self.running:
-            ret, frame = cap.read()
-            if ret:
-                print(cap.get(cv2.CAP_PROP_POS_FRAMES))
-                # Convert the frame to RGB
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                results2 = model(rgb_frame, conf=0.3, imgsz=320, max_det=1)
+            ret_left, frame_left = cap_left.read()
+            ret_right, frame_right = cap_right.read()
 
-                rgb_frame = results2[0].plot()
+            if ret_left and ret_right:
+                fn = cap_left.get(cv2.CAP_PROP_POS_FRAMES)
 
-                for r1 in results2:
-                    if r1.keypoints:
-                        points2 = r1.keypoints.xy.numpy()
-                        points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
-                        similarity = compute_cosine_similarity(points1[i], points2)
-                        similarity_values.append(similarity)
-                        i += 1
+                rgb_frame_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2RGB)
+                rgb_frame_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2RGB)
 
-                h, w, ch = rgb_frame.shape
-                bytes_per_line = ch * w
-                qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
-                self.frame_update.emit(qt_image)
+                if fn % 5 == 0:
+                    results2 = model(rgb_frame_right, conf=0.3, imgsz=320, max_det=1)
+                    rgb_frame_right = results2[0].plot()
 
-        cap.release()
+                    for r1 in results2:
+                        if r1.keypoints:
+                            points2 = r1.keypoints.xy.numpy()
+                            points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
+                            similarity = compute_cosine_similarity(points1[i], points2)
+                            if similarity < 0:
+                                similarity = 0
+                            print(similarity)
+                            self.similarity_update.emit(similarity)
+                            # similarity_values.append(similarity)
+                            i += 1
+
+                rgb_frame_left = imutils.resize(rgb_frame_left, width=960)
+
+                qt_image_left = QImage(
+                    rgb_frame_left.data,
+                    rgb_frame_left.shape[1],
+                    rgb_frame_left.shape[0],
+                    rgb_frame_left.strides[0],
+                    QImage.Format_RGB888,
+                )
+                qt_image_right = QImage(
+                    rgb_frame_right.data,
+                    rgb_frame_right.shape[1],
+                    rgb_frame_right.shape[0],
+                    rgb_frame_right.strides[0],
+                    QImage.Format_RGB888,
+                )
+
+                self.frame_update_left.emit(qt_image_left)  # Emit the signal for left feed
+                self.frame_update_right.emit(qt_image_right)  # Emit the signal for right feed
+            """
+            else:
+                # Break the loop if the end of the video is reached
+                break
+            """
+        # Release the video captures when the thread is stopped
+        cap_left.release()
+        cap_right.release()
 
     def stop(self):
         self.running = False
@@ -91,16 +126,19 @@ class MainWindow(QMainWindow):
 
         # Content Area
         content_layout = QHBoxLayout()
-        left_box = QFrame()
-        left_box.setObjectName("leftBox")
 
-        self.right_box = QLabel("Camera Feed")
+        # Left Box for Video (Camera Feed 1)
+        self.left_box = QLabel("Left Camera Feed")
+        self.left_box.setAlignment(Qt.AlignCenter)
+        self.left_box.setObjectName("leftBox")
+
+        content_layout.addWidget(self.left_box, 1)
+
+        # Right Box for Video (Camera Feed 2)
+        self.right_box = QLabel("Right Camera Feed")
         self.right_box.setAlignment(Qt.AlignCenter)
         self.right_box.setObjectName("rightBox")
 
-        left_box.setFrameShape(QFrame.StyledPanel)
-
-        content_layout.addWidget(left_box, 1)
         content_layout.addWidget(self.right_box, 1)
 
         content_container = QWidget()
@@ -108,14 +146,22 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(content_container)
 
+        # Similarity Label (below the videos)
+        self.similarity_label = QLabel("Similarity: N/A")
+        self.similarity_label.setAlignment(Qt.AlignCenter)
+        self.similarity_label.setObjectName("similarityLabel")
+        main_layout.addWidget(self.similarity_label)
+
         # Central Widget
         central_widget = QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        # Start Video Thread
+        # Start Video Thread to handle two camera feeds
         self.thread = VideoThread()
-        self.thread.frame_update.connect(self.update_frame)
+        self.thread.frame_update_left.connect(self.update_left_frame)
+        self.thread.frame_update_right.connect(self.update_right_frame)
+        self.thread.similarity_update.connect(self.update_similarity_label)  # Connect the similarity signal to the label update method
         self.thread.start()
 
         # Apply Styles
@@ -148,7 +194,10 @@ class MainWindow(QMainWindow):
         }
 
         #leftBox {
-            background-color: #f0f0f0;
+            background-color: #000;
+            color: white;
+            font-size: 16px;
+            border: 2px solid #444;
         }
 
         #rightBox {
@@ -157,14 +206,29 @@ class MainWindow(QMainWindow):
             font-size: 16px;
             border: 2px solid #444;
         }
+
+        #similarityLabel {
+        font-size: 28px;
+        font-weight: bold;
+        color: #000;
+        margin-top: 10px;
+        }
         """
 
-    def update_frame(self, qt_image):
+    def update_similarity_label(self, similarity_value):
+        # Update the similarity label with the latest similarity value
+        self.similarity_label.setText(f"Similarity: {similarity_value:.2f}")
+
+    def update_left_frame(self, qt_image):
+        pixmap = QPixmap.fromImage(qt_image)
+        self.left_box.setPixmap(pixmap)
+
+    def update_right_frame(self, qt_image):
         pixmap = QPixmap.fromImage(qt_image)
         self.right_box.setPixmap(pixmap)
 
     def closeEvent(self, event):
-        self.thread.stop()
+        self.thread.stop()  # Stop the video thread
         event.accept()
 
 
