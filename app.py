@@ -61,6 +61,9 @@ placeholder = st.empty()
 if "progress" not in st.session_state:
     st.session_state.progress = 0
 
+if "progress" not in st.session_state:
+    st.session_state.progress = 0
+
 if "similarity_list" not in st.session_state:
     st.session_state.similarity_list = []
 
@@ -84,6 +87,7 @@ def show_chart():
     if st.button("Close"):
         st.session_state.similarity_list = []
         st.session_state.progress = 0
+        st.session_state.progress = 0
         st.rerun()
 
 
@@ -96,6 +100,7 @@ def match_trainer():
         trainer_col = col1.empty()
         user_col = col2.empty()
 
+        with open(st.session_state.video_path[1], "rb") as f:
         with open(st.session_state.video_path[1], "rb") as f:
             points1 = pickle.load(f)
 
@@ -128,6 +133,7 @@ def match_trainer():
                     frame2 = results2[0].plot()
 
                     for r in results2:
+                        points2 = r.cpu().keypoints.xy.numpy()
                         points2 = r.cpu().keypoints.xy.numpy()
 
                         if points2.size:  # Check if keypoints are detected
@@ -179,6 +185,8 @@ def match_trainer():
 
 
 def home():
+    placeholder.markdown("")  # Clear the current content
+    time.sleep(0.1)
     with placeholder.container(border=True):
         st.title("Match Your Trainer", anchor=False)
         st.markdown("")
