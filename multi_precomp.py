@@ -37,6 +37,38 @@ def normalize_keypoints(keypoints, anchor_idx1, anchor_idx2):
     return np.array(normalized_keypoints)
 
 
+def compute_cosine_dissimilarity(pose1, pose2):
+    # Ensure that both poses have the same number of keypoints
+    if pose1.shape != pose2.shape:
+        raise ValueError("Input poses must have the same shape.")
+
+    # Initialize variables to track the minimum similarity and its index
+    min_similarity = float('inf')
+    min_index = -1
+
+    # Iterate through each point in the poses
+    for i in range(pose1.shape[0]):  # Assuming pose1 and pose2 are 2D arrays with shape (n_points, n_features)
+        pose1_vector = pose1[i].flatten()
+        pose2_vector = pose2[i].flatten()
+
+        # Compute dot product and magnitudes
+        dot_product = np.dot(pose1_vector, pose2_vector)
+        magnitude1 = np.linalg.norm(pose1_vector)
+        magnitude2 = np.linalg.norm(pose2_vector)
+
+        # Avoid division by zero
+        if magnitude1 == 0 or magnitude2 == 0:
+            similarity = 0  # Treat zero-magnitude vectors as orthogonal
+        else:
+            similarity = dot_product / (magnitude1 * magnitude2)
+
+        # Update minimum similarity and index if current similarity is lower
+        if similarity < min_similarity:
+            min_similarity = similarity
+            min_index = i
+
+    return min_similarity, min_index 
+
 def compute_cosine_similarity(pose1, pose2):
     # Flatten the keypoints into a single vector
     pose1_vector = pose1.flatten()
