@@ -7,7 +7,27 @@ import streamlit as st
 from streamlit_image_select import image_select
 from ultralytics import YOLO
 
-from multi_precomp import compute_cosine_similarity, normalize_keypoints
+from multi_precomp import compute_cosine_dissimilarity, compute_cosine_similarity, normalize_keypoints
+
+list1 = [
+    "nose",
+    "left eye",
+    "right eye",
+    "left ear",
+    "right ear",
+    "left shoulder",
+    "right shoulder",
+    "left elbow",
+    "right elbow",
+    "left hand",
+    "right hand",
+    "hips",
+    "hips",
+    "left knee",
+    "right knee",
+    "left leg",
+    "right leg",
+]
 
 st.set_page_config(
     page_title="Match Your Trainer",
@@ -38,12 +58,18 @@ st.html("""<style>
 # Main container for dynamic content
 placeholder = st.empty()
 
+if "progress" not in st.session_state:
+    st.session_state.progress = 0
+
 if "similarity_list" not in st.session_state:
     st.session_state.similarity_list = []
 
+if "video_path" not in st.session_state:
+    st.session_state.video_path = ["", ""]
+
 
 def stop():
-    st.session_state.completed = True
+    st.session_state.progress = 2
 
 
 @st.dialog("Similarity Chart")
@@ -57,11 +83,11 @@ def show_chart():
 
     if st.button("Close"):
         st.session_state.similarity_list = []
-        st.session_state.completed = False
+        st.session_state.progress = 0
         st.rerun()
 
 
-def match_trainer(video_path, data_path):
+def match_trainer():
     placeholder.markdown("")  # Clear the current content
     time.sleep(0.1)
 
@@ -70,7 +96,7 @@ def match_trainer(video_path, data_path):
         trainer_col = col1.empty()
         user_col = col2.empty()
 
-        with open(data_path, "rb") as f:
+        with open(st.session_state.video_path[1], "rb") as f:
             points1 = pickle.load(f)
 
         index = 0
@@ -78,8 +104,8 @@ def match_trainer(video_path, data_path):
         no_camera = 0
         model = YOLO("yolo11n-pose.pt")
 
-        cap1 = cv2.VideoCapture(video_path)
-        cap2 = cv2.VideoCapture(0)
+        cap1 = cv2.VideoCapture(st.session_state.video_path[0])
+        cap2 = cv2.VideoCapture("./videos/capture3.mp4")
 
         st.markdown("Similarity")
         score = st.empty()
@@ -102,7 +128,7 @@ def match_trainer(video_path, data_path):
                     frame2 = results2[0].plot()
 
                     for r in results2:
-                        points2 = r.keypoints.xy.numpy()
+                        points2 = r.cpu().keypoints.xy.numpy()
 
                         if points2.size:  # Check if keypoints are detected
                             points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
@@ -113,9 +139,12 @@ def match_trainer(video_path, data_path):
                             similarity = round(similarity * 100, 2)
                             st.session_state.similarity_list.append(similarity)
 
+                            if similarity < 95:
+                                min_similarity, min_index = compute_cosine_dissimilarity(points1[index], points2)
+                                st.toast(f"{list1[min_index]} is not proper, please adjust yourself to match the trainer")
+
                             score.subheader(str(similarity) + " %", anchor=False)
                             index += 1
-
                         else:
                             st.session_state.similarity_list.append(None)
                             score.subheader("0 %", anchor=False)
@@ -178,14 +207,18 @@ def home():
         # Button action
         if st.button("Start"):  # change this thing
             if img == 0:  # If the first image is selected
-                match_trainer("./videos/jump1.mp4", "./export/data_jumping_jacks.pkl")
+                st.session_state.video_path = ["./videos/jump1.mp4", "./export/data_jumping_jacks.pkl"]
+                st.session_state.progress = 1
+                match_trainer()
             elif img == 1:  # NOT WORKING, ONLY 1 ARGUMENT PASSED, because no data for bicep curl
                 match_trainer("./videos/jump2.mp4")
 
 
-if "completed" not in st.session_state or not st.session_state.completed:
-    st.session_state.completed = False
+if st.session_state.progress == 0:
     home()
 
-if st.session_state.completed:
+if st.session_state.progress == 1:
+    match_trainer()
+
+if st.session_state.progress == 2:
     show_chart()
