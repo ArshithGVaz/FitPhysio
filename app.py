@@ -101,7 +101,6 @@ def match_trainer():
         user_col = col2.empty()
 
         with open(st.session_state.video_path[1], "rb") as f:
-        with open(st.session_state.video_path[1], "rb") as f:
             points1 = pickle.load(f)
 
         index = 0
