@@ -104,12 +104,13 @@ def match_trainer():
             points1 = pickle.load(f)
 
         index = 0
+        no_toast = 0
         no_person = 0
         no_camera = 0
         model = YOLO("yolo11n-pose.pt")
 
         cap1 = cv2.VideoCapture(st.session_state.video_path[0])
-        cap2 = cv2.VideoCapture("./videos/capture3.mp4")
+        cap2 = cv2.VideoCapture("./videos/jump2.mp4")
 
         st.markdown("Similarity")
         score = st.empty()
@@ -143,13 +144,15 @@ def match_trainer():
 
                             similarity = round(similarity * 100, 2)
                             st.session_state.similarity_list.append(similarity)
-
-                            if similarity < 95:
-                                min_similarity, min_index = compute_cosine_dissimilarity(points1[index], points2)
-                                st.toast(f"{list1[min_index]} is not proper, please adjust yourself to match the trainer")
-
-                            score.subheader(str(similarity) + " %", anchor=False)
-                            index += 1
+                            no_toast +=1
+                            if no_toast >=30: 
+                                if similarity < 90 and similarity > 70:
+                                    min_similarity, min_index = compute_cosine_dissimilarity(points1[index], points2)
+                                    st.toast(f"{list1[min_index]} is not proper, please adjust yourself to match the trainer")
+                                elif similarity <70:
+                                    st.toast("Not doing the intended exercise. Please look at the trainer")
+                                score.subheader(str(similarity) + " %", anchor=False)
+                                index += 1
                         else:
                             st.session_state.similarity_list.append(None)
                             score.subheader("0 %", anchor=False)
