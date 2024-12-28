@@ -10,23 +10,23 @@ from ultralytics import YOLO
 from multi_precomp import compute_cosine_dissimilarity, compute_cosine_similarity, normalize_keypoints
 
 list1 = [
-    "nose",
-    "left eye",
-    "right eye",
-    "left ear",
-    "right ear",
+    "head",
+    "head",
+    "head",
+    "head",
+    "head",
     "left shoulder",
     "right shoulder",
     "left elbow",
     "right elbow",
-    "left hand",
-    "right hand",
+    "hand",
+    "hand",
     "hips",
     "hips",
     "left knee",
     "right knee",
-    "left leg",
-    "right leg",
+    "legs",
+    "legs",
 ]
 
 st.set_page_config(
@@ -61,9 +61,6 @@ placeholder = st.empty()
 if "progress" not in st.session_state:
     st.session_state.progress = 0
 
-if "progress" not in st.session_state:
-    st.session_state.progress = 0
-
 if "similarity_list" not in st.session_state:
     st.session_state.similarity_list = []
 
@@ -87,7 +84,6 @@ def show_chart():
     if st.button("Close"):
         st.session_state.similarity_list = []
         st.session_state.progress = 0
-        st.session_state.progress = 0
         st.rerun()
 
 
@@ -110,7 +106,7 @@ def match_trainer():
         model = YOLO("yolo11n-pose.pt")
 
         cap1 = cv2.VideoCapture(st.session_state.video_path[0])
-        cap2 = cv2.VideoCapture("./videos/jump2.mp4")
+        cap2 = cv2.VideoCapture(0)
 
         st.markdown("Similarity")
         score = st.empty()
@@ -134,7 +130,6 @@ def match_trainer():
 
                     for r in results2:
                         points2 = r.cpu().keypoints.xy.numpy()
-                        points2 = r.cpu().keypoints.xy.numpy()
 
                         if points2.size:  # Check if keypoints are detected
                             points2 = normalize_keypoints(points2[0], anchor_idx1=5, anchor_idx2=6)
@@ -144,15 +139,21 @@ def match_trainer():
 
                             similarity = round(similarity * 100, 2)
                             st.session_state.similarity_list.append(similarity)
-                            no_toast +=1
-                            if no_toast >=30: 
-                                if similarity < 90 and similarity > 70:
+                            score.subheader(str(similarity) + " %", anchor=False)
+                            index += 1
+
+                            no_toast += 1
+                            if no_toast >= 5:
+                                if similarity < 70:
+                                    st.toast("Not performing the exercise correctly, please adjust yourself to match the trainer")
+                                    no_toast = 0
+                                elif similarity < 90:
                                     min_similarity, min_index = compute_cosine_dissimilarity(points1[index], points2)
-                                    st.toast(f"{list1[min_index]} is not proper, please adjust yourself to match the trainer")
-                                elif similarity <70:
-                                    st.toast("Not doing the intended exercise. Please look at the trainer")
-                                score.subheader(str(similarity) + " %", anchor=False)
-                                index += 1
+                                    st.toast(
+                                        f"Your {list1[min_index]} is not simlar to the trainer, please adjust yourself to match the trainer"
+                                    )
+                                    no_toast = 0
+
                         else:
                             st.session_state.similarity_list.append(None)
                             score.subheader("0 %", anchor=False)
