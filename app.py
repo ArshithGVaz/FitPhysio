@@ -143,7 +143,7 @@ def match_trainer():
                             index += 1
 
                             no_toast += 1
-                            if no_toast >= 5:
+                            if no_toast >= 10:
                                 if similarity < 70:
                                     st.toast("Not performing the exercise correctly, please adjust yourself to match the trainer")
                                     no_toast = 0
@@ -198,16 +198,16 @@ def home():
         img = image_select(
             "",
             [
-                "./photos/icon_jumping_jack.jpg",
+                "./photos/icon_jumping_jacks.jpg",
                 "./photos/icon_bicepcurl.jpg",
-                "./photos/icon_jumping_jack.jpg",
-                "./photos/icon_jumping_jack.jpg",
+                "./photos/icon_squats.jpg",
+                "./photos/icon_bench_press.jpg",
             ],
             captions=[
                 "Jumping Jacks",
                 "Bicep Curl",
-                "Jumping Jacks",
-                "Jumping Jacks",
+                "Squats",
+                "Bench Press",
             ],
             use_container_width=False,
             return_value="index",
@@ -221,8 +221,10 @@ def home():
                 st.session_state.video_path = ["./videos/jump1.mp4", "./export/data_jumping_jacks.pkl"]
                 st.session_state.progress = 1
                 match_trainer()
-            elif img == 1:  # NOT WORKING, ONLY 1 ARGUMENT PASSED, because no data for bicep curl
-                match_trainer("./videos/jump2.mp4")
+            elif img == 1:
+                st.session_state.video_path = ["./videos/curl1.mp4", "./export/data_bicep_curl.pkl"]
+                st.session_state.progress = 1
+                match_trainer()
 
 
 if st.session_state.progress == 0:
