@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebRTC with Firebase</title>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>WebRTC Demo</h1>
+  <button id="startButton">Start</button>
+  <button id="callButton">Call</button>
+  <button id="hangupButton">Hang Up</button>
+
+  <script>
+    // Initialize Firebase (Replace with your own config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBx-M3mB92ZekSgoVCDX_rqGGUy-Fi5_U",
+      authDomain: "fitphysio-a6bdd.firebaseapp.com",
+      databaseURL: "https://fitphysio-a6bdd-default-rtdb.firebaseio.com",
+      projectId: "fitphysio-a6bdd",
+      storageBucket: "fitphysio-a6bdd.firebasestorage.app",
+      messagingSenderId: "379065816786",
+      appId: "1:379065816786:web:1377392fafb70c48fe7f0b",
+      measurementId: "G-TTLET9W2R5"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const startButton = document.getElementById('startButton');
+    const callButton = document.getElementById('callButton');
+    const hangupButton = document.getElementById('hangupButton');
+
+    let pc;
+    let sendChannel;
+    let roomId; // Unique room ID for the connection
+
+    startButton.onclick = start;
+    callButton.onclick = call;
+    hangupButton.onclick = hangup;
+
+    async function start() {
+      console.log("Starting...");
+      startButton.disabled = true;
+      callButton.disabled = false;
+      hangupButton.disabled = true;
+
+      roomId = generateRoomId(); // Generate a unique room ID
+      console.log("Room ID:", roomId);
+
+      pc = new RTCPeerConnection(null);
+
+      sendChannel = pc.createDataChannel("myDataChannel");
+
+      sendChannel.onopen = () => {
+        console.log("Data channel opened!");
+      };
+
+      sendChannel.onmessage = (event) => {
+        console.log("Received message:", event.data);
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          db.ref(`rooms/${roomId}/candidates`).push(event.candidate.toJSON());
+        }
+      };
+
+      pc.ontrack = (event) => {
+        console.log("Track added:", event.track);
+      };
+
+      pc.oniceconnectionstatechange = e => {
+          console.log(pc.iceConnectionState);
+      }
+
+      pc.ondatachannel = event => {
+        let receiveChannel = event.channel;
+        receiveChannel.onmessage = event => {
+            console.log("Received message:", event.data);
+        }
+      }
+
+
+      // Listen for ICE candidates from the other peer
+      db.ref(`rooms/${roomId}/candidates`).on('child_added', (snapshot) => {
+        const candidate = new RTCIceCandidate(snapshot.val());
+        pc.addIceCandidate(candidate);
+      });
+
+      // Listen for offers/answers
+      db.ref(`rooms/${roomId}/offer`).on('value', async (snapshot) => {
+        if (snapshot.val()) {
+          await pc.setRemoteDescription(new RTCSessionDescription(snapshot.val()));
+        }
+      });
+
+      db.ref(`rooms/${roomId}/answer`).on('value', async (snapshot) => {
+        if (snapshot.val()) {
+          await pc.setRemoteDescription(new RTCSessionDescription(snapshot.val()));
+        }
+      });
+
+    }
+
+    async function call() {
+      console.log("Calling...");
+      callButton.disabled = true;
+      hangupButton.disabled = false;
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      db.ref(`rooms/${roomId}/offer`).set(offer); // Store the offer in Firebase
+
+      // Create answer when offer comes
+      db.ref(`rooms/${roomId}/offer`).on('value', async (snapshot) => {
+          if (snapshot.val()) {
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              db.ref(`rooms/${roomId}/answer`).set(answer);
+          }
+      });
+    }
+
+    function hangup() {
+      console.log("Hanging up...");
+      db.ref(`rooms/${roomId}`).remove(); // Clean up the room in Firebase
+      pc.close();
+      startButton.disabled = false;
+      callButton.disabled = true;
+      hangupButton.disabled = true;
+    }
+
+    function generateRoomId() {
+      // Simple random ID generation (replace with a more robust method if needed)
+      return Math.random().toString(36).substring(2, 15);
+    }
+  </script>
+</body>
+</html>
