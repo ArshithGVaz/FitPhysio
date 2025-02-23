@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebRTC Example</title>
+</head>
+<body>
+  <h1>WebRTC Demo</h1>
+  <button id="startButton">Start</button>
+  <button id="callButton">Call</button>
+  <button id="hangupButton">Hang Up</button>
+
+  <script>
+    const startButton = document.getElementById('startButton');
+    const callButton = document.getElementById('callButton');
+    const hangupButton = document.getElementById('hangupButton');
+
+    let pc; // Peer Connection
+    let sendChannel;
+
+    startButton.onclick = start;
+    callButton.onclick = call;
+    hangupButton.onclick = hangup;
+
+    async function start() {
+        console.log("Starting...");
+        startButton.disabled = true;
+        callButton.disabled = false;
+        hangupButton.disabled = true;
+
+        pc = new RTCPeerConnection(null); // Create peer connection
+
+        sendChannel = pc.createDataChannel("myDataChannel"); // Create data channel
+
+        sendChannel.onopen = () => {
+          console.log("Data channel opened!");
+        };
+
+        sendChannel.onmessage = (event) => {
+          console.log("Received message:", event.data);
+        };
+
+
+        pc.onicecandidate = async (event) => {
+          console.log("ICE candidate:", event.candidate);
+          // In a real application, you would send this candidate to the other peer
+        };
+
+        pc.ontrack = (event) => {
+          console.log("Track added:", event.track);
+        };
+
+        pc.oniceconnectionstatechange = e => {
+            console.log(pc.iceConnectionState);
+        }
+
+        pc.ondatachannel = event => {
+          let receiveChannel = event.channel;
+          receiveChannel.onmessage = event => {
+              console.log("Received message:", event.data);
+          }
+        }
+    }
+
+    async function call() {
+      console.log("Calling...");
+      callButton.disabled = true;
+      hangupButton.disabled = false;
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      console.log("Offer created:", offer);
+      // In a real application, you would send this offer to the other peer
+
+      // ... (Code to receive the answer from the other peer) ...
+      // Example:
+      // const answer = await getAnswerFromOtherPeer(); // Hypothetical function
+      // await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    function hangup() {
+      console.log("Hanging up...");
+      pc.close();
+      startButton.disabled = false;
+      callButton.disabled = true;
+      hangupButton.disabled = true;
+    }
+  </script>
+</body>
+</html>
